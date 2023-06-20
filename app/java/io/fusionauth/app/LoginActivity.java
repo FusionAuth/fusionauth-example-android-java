@@ -12,10 +12,9 @@
  * limitations under the License.
  */
 
-package net.openid.appauthdemo;
+package io.fusionauth.app;
 
 import android.annotation.TargetApi;
-import android.app.PendingIntent;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
@@ -26,11 +25,8 @@ import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.CheckBox;
 import android.widget.EditText;
-import android.widget.Spinner;
 import android.widget.TextView;
 import androidx.annotation.AnyThread;
 import androidx.annotation.ColorRes;
@@ -54,8 +50,6 @@ import net.openid.appauth.RegistrationResponse;
 import net.openid.appauth.ResponseTypeValues;
 import net.openid.appauth.browser.AnyBrowserMatcher;
 import net.openid.appauth.browser.BrowserMatcher;
-import net.openid.appauth.browser.ExactBrowserMatcher;
-import net.openid.appauthdemo.BrowserSelectionAdapter.BrowserInfo;
 
 import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
@@ -95,7 +89,6 @@ public final class LoginActivity extends AppCompatActivity {
     private CountDownLatch mAuthIntentLatch = new CountDownLatch(1);
     private ExecutorService mExecutor;
 
-    private boolean mUsePendingIntents;
 
     @NonNull
     private BrowserMatcher mBrowserMatcher = AnyBrowserMatcher.INSTANCE;
@@ -122,15 +115,11 @@ public final class LoginActivity extends AppCompatActivity {
                 mExecutor.submit(this::initializeAppAuth));
         findViewById(R.id.start_auth).setOnClickListener((View view) -> startAuth());
 
-        ((EditText)findViewById(R.id.login_hint_value)).addTextChangedListener(
-                new LoginHintChangeHandler());
-
         if (!mConfiguration.isValid()) {
             displayError(mConfiguration.getConfigurationError(), false);
             return;
         }
 
-        configureBrowserSelector();
         if (mConfiguration.hasConfigurationChanged()) {
             // discard any existing authorization state due to the change of configuration
             Log.i(TAG, "Configuration change detected, discarding old state");
@@ -185,8 +174,6 @@ public final class LoginActivity extends AppCompatActivity {
     @MainThread
     void startAuth() {
         displayLoading("Making authorization request");
-
-        mUsePendingIntents = ((CheckBox) findViewById(R.id.pending_intents_checkbox)).isChecked();
 
         // WrongThread inference is incorrect for lambdas
         // noinspection WrongThread
@@ -306,41 +293,7 @@ public final class LoginActivity extends AppCompatActivity {
     }
 
     /**
-     * Enumerates the browsers installed on the device and populates a spinner, allowing the
-     * demo user to easily test the authorization flow against different browser and custom
-     * tab configurations.
-     */
-    @MainThread
-    private void configureBrowserSelector() {
-        Spinner spinner = (Spinner) findViewById(R.id.browser_selector);
-        final BrowserSelectionAdapter adapter = new BrowserSelectionAdapter(this);
-        spinner.setAdapter(adapter);
-        spinner.setOnItemSelectedListener(new OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                BrowserInfo info = adapter.getItem(position);
-                if (info == null) {
-                    mBrowserMatcher = AnyBrowserMatcher.INSTANCE;
-                    return;
-                } else {
-                    mBrowserMatcher = new ExactBrowserMatcher(info.mDescriptor);
-                }
-
-                recreateAuthorizationService();
-                createAuthRequest(getLoginHint());
-                warmUpBrowser();
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-                mBrowserMatcher = AnyBrowserMatcher.INSTANCE;
-            }
-        });
-    }
-
-    /**
-     * Performs the authorization request, using the browser selected in the spinner,
-     * and a user-provided `login_hint` if available.
+     * Performs the authorization request, using the browser selected in the spinner
      */
     @WorkerThread
     private void doAuth() {
@@ -350,28 +303,10 @@ public final class LoginActivity extends AppCompatActivity {
             Log.w(TAG, "Interrupted while waiting for auth intent");
         }
 
-        if (mUsePendingIntents) {
-            final Intent completionIntent = new Intent(this, TokenActivity.class);
-            final Intent cancelIntent = new Intent(this, LoginActivity.class);
-            cancelIntent.putExtra(EXTRA_FAILED, true);
-            cancelIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-
-            int flags = 0;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                flags |= PendingIntent.FLAG_MUTABLE;
-            }
-
-            mAuthService.performAuthorizationRequest(
-                    mAuthRequest.get(),
-                    PendingIntent.getActivity(this, 0, completionIntent, flags),
-                    PendingIntent.getActivity(this, 0, cancelIntent, flags),
-                    mAuthIntent.get());
-        } else {
-            Intent intent = mAuthService.getAuthorizationRequestIntent(
-                    mAuthRequest.get(),
-                    mAuthIntent.get());
-            startActivityForResult(intent, RC_AUTH);
-        }
+        Intent intent = mAuthService.getAuthorizationRequestIntent(
+                mAuthRequest.get(),
+                mAuthIntent.get());
+        startActivityForResult(intent, RC_AUTH);
     }
 
     private void recreateAuthorizationService() {
@@ -421,7 +356,7 @@ public final class LoginActivity extends AppCompatActivity {
 
     @MainThread
     private void initializeAuthRequest() {
-        createAuthRequest(getLoginHint());
+        createAuthRequest();
         warmUpBrowser();
         displayAuthOptions();
     }
@@ -434,24 +369,6 @@ public final class LoginActivity extends AppCompatActivity {
 
         AuthState state = mAuthStateManager.getCurrent();
         AuthorizationServiceConfiguration config = state.getAuthorizationServiceConfiguration();
-
-        String authEndpointStr;
-        if (config.discoveryDoc != null) {
-            authEndpointStr = "Discovered auth endpoint: \n";
-        } else {
-            authEndpointStr = "Static auth endpoint: \n";
-        }
-        authEndpointStr += config.authorizationEndpoint;
-        ((TextView)findViewById(R.id.auth_endpoint)).setText(authEndpointStr);
-
-        String clientIdStr;
-        if (state.getLastRegistrationResponse() != null) {
-            clientIdStr = "Dynamic client ID: \n";
-        } else {
-            clientIdStr = "Static client ID: \n";
-        }
-        clientIdStr += mClientId;
-        ((TextView)findViewById(R.id.client_id)).setText(clientIdStr);
     }
 
     private void displayAuthCancelled() {
@@ -473,8 +390,7 @@ public final class LoginActivity extends AppCompatActivity {
         });
     }
 
-    private void createAuthRequest(@Nullable String loginHint) {
-        Log.i(TAG, "Creating auth request for login hint: " + loginHint);
+    private void createAuthRequest() {
         AuthorizationRequest.Builder authRequestBuilder = new AuthorizationRequest.Builder(
                 mAuthStateManager.getCurrent().getAuthorizationServiceConfiguration(),
                 mClientId.get(),
@@ -482,18 +398,7 @@ public final class LoginActivity extends AppCompatActivity {
                 mConfiguration.getRedirectUri())
                 .setScope(mConfiguration.getScope());
 
-        if (!TextUtils.isEmpty(loginHint)) {
-            authRequestBuilder.setLoginHint(loginHint);
-        }
-
         mAuthRequest.set(authRequestBuilder.build());
-    }
-
-    private String getLoginHint() {
-        return ((EditText)findViewById(R.id.login_hint_value))
-                .getText()
-                .toString()
-                .trim();
     }
 
     @TargetApi(Build.VERSION_CODES.M)
@@ -506,37 +411,6 @@ public final class LoginActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Responds to changes in the login hint. After a "debounce" delay, warms up the browser
-     * for a request with the new login hint; this avoids constantly re-initializing the
-     * browser while the user is typing.
-     */
-    private final class LoginHintChangeHandler implements TextWatcher {
-
-        private static final int DEBOUNCE_DELAY_MS = 500;
-
-        private Handler mHandler;
-        private RecreateAuthRequestTask mTask;
-
-        LoginHintChangeHandler() {
-            mHandler = new Handler(Looper.getMainLooper());
-            mTask = new RecreateAuthRequestTask();
-        }
-
-        @Override
-        public void beforeTextChanged(CharSequence cs, int start, int count, int after) {}
-
-        @Override
-        public void onTextChanged(CharSequence cs, int start, int before, int count) {
-            mTask.cancel();
-            mTask = new RecreateAuthRequestTask();
-            mHandler.postDelayed(mTask, DEBOUNCE_DELAY_MS);
-        }
-
-        @Override
-        public void afterTextChanged(Editable ed) {}
-    }
-
     private final class RecreateAuthRequestTask implements Runnable {
 
         private final AtomicBoolean mCanceled = new AtomicBoolean();
@@ -547,7 +421,7 @@ public final class LoginActivity extends AppCompatActivity {
                 return;
             }
 
-            createAuthRequest(getLoginHint());
+            createAuthRequest();
             warmUpBrowser();
         }
 

@@ -1,12 +1,8 @@
 {
-  "client_id": "",
-  "redirect_uri": "net.openid.appauthdemo:/oauth2redirect",
-  "end_session_redirect_uri": "net.openid.appauthdemo:/oauth2redirect",
-  "authorization_scope": "openid email profile",
-  "discovery_uri": "",
-  "authorization_endpoint_uri": "",
-  "token_endpoint_uri": "",
-  "registration_endpoint_uri": "",
-  "user_info_endpoint_uri": "",
+  "client_id": "e06522a5-de7e-49a1-b69e-75048afa20aa",
+  "redirect_uri": "io.fusionauth.app:/oauth2redirect",
+  "end_session_redirect_uri": "io.fusionauth.app:/oauth2redirect",
+  "authorization_scope": "openid offline_access",
+  "discovery_uri": "https://0458-2804-431-c7c9-e7fc-f3de-759e-5433-1b7b.ngrok-free.app/.well-known/openid-configuration/d7d09513-a3f5-401c-9685-34ab6c552453",
   "https_required": true
 }

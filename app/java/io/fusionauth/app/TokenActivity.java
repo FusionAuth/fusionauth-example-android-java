@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-package net.openid.appauthdemo;
+package io.fusionauth.app;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -39,6 +39,7 @@ import net.openid.appauth.AuthorizationServiceConfiguration;
 import net.openid.appauth.AuthorizationServiceDiscovery;
 import net.openid.appauth.ClientAuthentication;
 import net.openid.appauth.EndSessionRequest;
+import net.openid.appauth.IdToken;
 import net.openid.appauth.TokenRequest;
 import net.openid.appauth.TokenResponse;
 import okio.Okio;
@@ -49,6 +50,7 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.nio.charset.Charset;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
@@ -189,6 +191,18 @@ public class TokenActivity extends AppCompatActivity {
 
         AuthState state = mStateManager.getCurrent();
 
+//        TextView welcomeView = (TextView) findViewById(R.id.auth_granted);
+//        String welcomeTemplate = getResources().getString(R.string.auth_granted);
+//        IdToken idToken = Objects.requireNonNull(state.getParsedIdToken());
+//        String name = idToken.additionalClaims.get("name").toString();
+//        if (name.isEmpty()) {
+//            name = idToken.additionalClaims.get("email").toString();
+//            if (name.isEmpty()) {
+//                name = idToken.subject;
+//            }
+//        }
+//        welcomeView.setText(String.format(welcomeTemplate, name));
+
         TextView refreshTokenInfoView = findViewById(R.id.refresh_token_info);
         refreshTokenInfoView.setText((state.getRefreshToken() == null)
                 ? R.string.no_refresh_token_returned
@@ -241,9 +255,16 @@ public class TokenActivity extends AppCompatActivity {
             userInfoCard.setVisibility(View.INVISIBLE);
         } else {
             try {
-                String name = "???";
+                String name = "";
                 if (userInfo.has("name")) {
                     name = userInfo.getString("name");
+                } else if (userInfo.has("given_name")) {
+                    name = userInfo.getString("given_name");
+                    if (userInfo.has("family_name")) {
+                        name += " " + userInfo.getString("family_name");
+                    }
+                } else if (userInfo.has("email")) {
+                    name = userInfo.getString("email");
                 }
                 ((TextView) findViewById(R.id.userinfo_name)).setText(name);
 
@@ -311,10 +332,26 @@ public class TokenActivity extends AppCompatActivity {
             @Nullable TokenResponse tokenResponse,
             @Nullable AuthorizationException authException) {
 
+        if (tokenResponse != null) {
+            Log.e("TokenActivity", String.valueOf(tokenResponse.idToken));
+            Log.e("TokenActivity", String.valueOf(tokenResponse.accessToken));
+            Log.e("TokenActivity", tokenResponse.jsonSerializeString());
+        }
         mStateManager.updateAfterTokenResponse(tokenResponse, authException);
         if (!mStateManager.getCurrent().isAuthorized()) {
+            String details = "";
+            if (authException != null) {
+                if (authException.error != null) {
+                    details = authException.error;
+                } else {
+                    final Throwable cause = authException.getCause();
+                    if (cause != null) {
+                        details = cause.getMessage();
+                    }
+                }
+            }
             final String message = "Authorization Code exchange failed"
-                    + ((authException != null) ? authException.error : "");
+                    + ((details.length() > 0) ? ": " + details : "");
 
             // WrongThread inference is incorrect for lambdas
             //noinspection WrongThread

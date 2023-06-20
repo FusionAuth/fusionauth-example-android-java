@@ -4,16 +4,16 @@ apply from: '../config/android-common.gradle'
 apply from: '../config/keystore.gradle'
 
 android {
-    namespace 'net.openid.appauthdemo'
+    namespace 'io.fusionauth.app'
     defaultConfig {
-        applicationId 'net.openid.appauthdemo'
-        project.archivesBaseName = 'appauth-demoapp'
+        applicationId 'io.fusionauth.app'
+        project.archivesBaseName = 'fusionauth-demoapp'
         vectorDrawables.useSupportLibrary = true
 
         // Make sure this is consistent with the redirect URI used in res/raw/auth_config.json,
         // or specify additional redirect URIs in AndroidManifest.xml
         manifestPlaceholders = [
-                'appAuthRedirectScheme': 'net.openid.appauthdemo'
+                'appAuthRedirectScheme': 'io.fusionauth.app'
         ]
     }
 
@@ -46,7 +46,7 @@ android {
 }
 
 dependencies {
-    implementation project(':library')
+    implementation "net.openid:appauth:0.11.1"
     implementation "androidx.appcompat:appcompat:${project.androidXVersions.appcompat}"
     implementation "androidx.annotation:annotation:${project.androidXVersions.annotation}"
     implementation "com.google.android.material:material:${project.googleVersions.material}"
