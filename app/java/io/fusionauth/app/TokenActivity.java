@@ -191,25 +191,15 @@ public class TokenActivity extends AppCompatActivity {
 
         AuthState state = mStateManager.getCurrent();
 
-//        TextView welcomeView = (TextView) findViewById(R.id.auth_granted);
-//        String welcomeTemplate = getResources().getString(R.string.auth_granted);
-//        IdToken idToken = Objects.requireNonNull(state.getParsedIdToken());
-//        String name = idToken.additionalClaims.get("name").toString();
-//        if (name.isEmpty()) {
-//            name = idToken.additionalClaims.get("email").toString();
-//            if (name.isEmpty()) {
-//                name = idToken.subject;
-//            }
-//        }
-//        welcomeView.setText(String.format(welcomeTemplate, name));
-
         TextView refreshTokenInfoView = findViewById(R.id.refresh_token_info);
         refreshTokenInfoView.setText((state.getRefreshToken() == null)
                 ? R.string.no_refresh_token_returned
                 : R.string.refresh_token_returned);
 
+        IdToken idToken = state.getParsedIdToken();
+
         TextView idTokenInfoView = (TextView) findViewById(R.id.id_token_info);
-        idTokenInfoView.setText((state.getIdToken()) == null
+        idTokenInfoView.setText((idToken == null)
                 ? R.string.no_id_token_returned
                 : R.string.id_token_returned);
 
@@ -251,11 +241,11 @@ public class TokenActivity extends AppCompatActivity {
 
         View userInfoCard = findViewById(R.id.userinfo_card);
         JSONObject userInfo = mUserInfoJson.get();
+        String name = "";
         if (userInfo == null) {
             userInfoCard.setVisibility(View.INVISIBLE);
         } else {
             try {
-                String name = "";
                 if (userInfo.has("name")) {
                     name = userInfo.getString("name");
                 } else if (userInfo.has("given_name")) {
@@ -280,6 +270,28 @@ public class TokenActivity extends AppCompatActivity {
             } catch (JSONException ex) {
                 Log.e(TAG, "Failed to read userinfo JSON", ex);
             }
+        }
+
+        if ((name.isEmpty()) && (idToken != null)) {
+            Object claim = idToken.additionalClaims.get("name");
+            if (claim != null) {
+                name = claim.toString();
+            }
+            if (name.isEmpty()) {
+                claim = idToken.additionalClaims.get("email");
+                if (claim != null) {
+                    name = claim.toString();
+                }
+            }
+            if (name.isEmpty()) {
+                name = idToken.subject;
+            }
+        }
+
+        if (!name.isEmpty()) {
+            TextView welcomeView = (TextView) findViewById(R.id.auth_granted);
+            String welcomeTemplate = getResources().getString(R.string.auth_granted_name);
+            welcomeView.setText(String.format(welcomeTemplate, name));
         }
     }
 
@@ -443,16 +455,17 @@ public class TokenActivity extends AppCompatActivity {
         AuthState currentState = mStateManager.getCurrent();
         AuthorizationServiceConfiguration config =
                 currentState.getAuthorizationServiceConfiguration();
-        if (config.endSessionEndpoint != null) {
-            Intent endSessionIntent = mAuthService.getEndSessionRequestIntent(
-                    new EndSessionRequest.Builder(config)
-                        .setIdTokenHint(currentState.getIdToken())
-                        .setPostLogoutRedirectUri(mConfiguration.getEndSessionRedirectUri())
-                        .build());
-            startActivityForResult(endSessionIntent, END_SESSION_REQUEST_CODE);
-        } else {
+        if ((config == null) || (config.endSessionEndpoint == null)) {
             signOut();
+            return;
         }
+
+        Intent endSessionIntent = mAuthService.getEndSessionRequestIntent(
+                new EndSessionRequest.Builder(config)
+                    .setIdTokenHint(currentState.getIdToken())
+                    .setPostLogoutRedirectUri(mConfiguration.getEndSessionRedirectUri())
+                    .build());
+        startActivityForResult(endSessionIntent, END_SESSION_REQUEST_CODE);
     }
 
     @MainThread
