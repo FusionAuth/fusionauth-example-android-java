@@ -191,33 +191,14 @@ public class TokenActivity extends AppCompatActivity {
 
         AuthState state = mStateManager.getCurrent();
 
-        TextView refreshTokenInfoView = findViewById(R.id.refresh_token_info);
-        refreshTokenInfoView.setText((state.getRefreshToken() == null)
-                ? R.string.no_refresh_token_returned
-                : R.string.refresh_token_returned);
-
-        IdToken idToken = state.getParsedIdToken();
-
-        TextView idTokenInfoView = (TextView) findViewById(R.id.id_token_info);
-        idTokenInfoView.setText((idToken == null)
-                ? R.string.no_id_token_returned
-                : R.string.id_token_returned);
-
         TextView accessTokenInfoView = (TextView) findViewById(R.id.access_token_info);
         if (state.getAccessToken() == null) {
             accessTokenInfoView.setText(R.string.no_access_token_returned);
         } else {
-            Long expiresAt = state.getAccessTokenExpirationTime();
-            if (expiresAt == null) {
-                accessTokenInfoView.setText(R.string.no_access_token_expiry);
-            } else if (expiresAt < System.currentTimeMillis()) {
-                accessTokenInfoView.setText(R.string.access_token_expired);
-            } else {
-                String template = getResources().getString(R.string.access_token_expires_at);
-                accessTokenInfoView.setText(String.format(template,
-                        DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss ZZ").print(expiresAt)));
-            }
+            accessTokenInfoView.setVisibility(View.GONE);
         }
+
+        IdToken idToken = state.getParsedIdToken();
 
         Button refreshTokenButton = (Button) findViewById(R.id.refresh_token);
         refreshTokenButton.setVisibility(state.getRefreshToken() != null

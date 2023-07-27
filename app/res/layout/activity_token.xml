@@ -126,26 +126,10 @@
                 </LinearLayout>
 
                 <TextView
-                    android:id="@+id/refresh_token_info"
-                    android:layout_marginTop="8dp"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    tools:text="Refresh token returned"
-                    style="@style/Base.TextAppearance.AppCompat.Body1" />
-
-                <TextView
                     android:id="@+id/access_token_info"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     tools:text="Token expires at: 2016-01-01 12:00 UTC"
-                    style="@style/Base.TextAppearance.AppCompat.Body1" />
-
-                <TextView
-                    android:id="@+id/id_token_info"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    tools:text="ID token returned"
                     style="@style/Base.TextAppearance.AppCompat.Body1" />
 
                 <LinearLayout
