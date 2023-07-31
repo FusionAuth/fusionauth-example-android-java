@@ -410,23 +410,4 @@ public final class LoginActivity extends AppCompatActivity {
             return getResources().getColor(color);
         }
     }
-
-    private final class RecreateAuthRequestTask implements Runnable {
-
-        private final AtomicBoolean mCanceled = new AtomicBoolean();
-
-        @Override
-        public void run() {
-            if (mCanceled.get()) {
-                return;
-            }
-
-            createAuthRequest();
-            warmUpBrowser();
-        }
-
-        public void cancel() {
-            mCanceled.set(true);
-        }
-    }
 }

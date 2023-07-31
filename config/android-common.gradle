@@ -4,8 +4,6 @@ android {
     defaultConfig {
         minSdkVersion rootProject.minSdkVersion
         targetSdkVersion rootProject.compileSdkVersion
-        versionCode rootProject.versionNum
-        versionName rootProject.versionName
     }
     sourceSets {
         main.manifest.srcFile 'AndroidManifest.xml'

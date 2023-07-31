@@ -23,12 +23,32 @@
             android:orientation="vertical"
             app:layout_behavior="@string/appbar_scrolling_view_behavior" >
 
-            <ImageView
-                android:layout_width="96dp"
-                android:layout_height="96dp"
-                android:layout_gravity="center"
-                app:srcCompat="@mipmap/ic_launcher"
-                android:contentDescription="@string/openid_logo_content_description"/>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginBottom="20dp"
+                android:orientation="horizontal"
+                android:weightSum="100">
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="25"/>
+
+                <ImageView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center"
+                    android:layout_weight="50"
+                    android:adjustViewBounds="true"
+                    app:srcCompat="@drawable/changebank"
+                    android:contentDescription="@string/openid_logo_content_description"/>
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="25"/>
+            </LinearLayout>
 
             <!--
             displayed while token requests are occurring
@@ -78,6 +98,7 @@
                     android:id="@+id/reauth"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_gravity="center"
                     android:text="@string/reauthorize" />
 
             </LinearLayout>
@@ -89,91 +110,105 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
-                <TextView
-                    android:id="@+id/auth_granted"
-                    style="@style/Base.TextAppearance.AppCompat.Title"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:text="@string/auth_granted" />
-
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:gravity="center"
+                    android:layout_marginBottom="20dp"
                     android:orientation="horizontal">
-                    <Button
-                        android:id="@+id/refresh_token"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/refresh_token"
-                        style="@style/Widget.AppCompat.Button"/>
 
-                    <Button
-                        android:id="@+id/view_profile"
-                        android:layout_width="wrap_content"
+                    <TextView
+                        android:id="@+id/auth_granted_email"
+                        style="@style/Base.TextAppearance.AppCompat.Small"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:text="@string/view_profile"
-                        style="@style/Widget.AppCompat.Button" />
+                        android:layout_weight="1"
+                        android:layout_gravity="center" />
 
                     <Button
                         android:id="@+id/sign_out"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/sign_out"
-                        style="@style/Widget.AppCompat.Button.Colored"/>
+                        style="@style/Widget.AppCompat.Button.Small"/>
+
                 </LinearLayout>
 
                 <TextView
-                    android:id="@+id/access_token_info"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    tools:text="Token expires at: 2016-01-01 12:00 UTC"
-                    style="@style/Base.TextAppearance.AppCompat.Body1" />
-
-                <LinearLayout
-                    android:id="@+id/userinfo_card"
+                    android:id="@+id/auth_granted"
+                    style="@style/Base.TextAppearance.AppCompat.Title"
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
                     android:layout_weight="1"
-                    android:padding="8dp"
-                    android:orientation="vertical"
-                    android:layout_marginTop="8dp">
+                    android:layout_gravity="center"
+                    android:text="@string/auth_granted"
+                    android:textColor="@color/colorAccent" />
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical">
+                <TextView
+                    android:id="@+id/account_balance"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center"
+                    android:text="@string/account_balance"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginBottom="10dp"
+                    style="@style/Base.TextAppearance.AppCompat.Medium" />
 
-                        <ImageView
-                            android:layout_width="48dp"
-                            android:layout_height="48dp"
-                            android:id="@+id/userinfo_profile"
-                            android:contentDescription="@string/userinfo_profile_content_description"
-                            app:srcCompat="@drawable/unknown_user_48dp" />
+                <TextView
+                    android:id="@+id/changebank_title"
+                    style="@style/Base.TextAppearance.AppCompat.Title"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginTop="20dp"
+                    android:text="@string/changebank_title"
+                    android:textColor="@color/colorAccent" />
 
-                        <TextView
-                            android:id="@+id/userinfo_name"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:paddingLeft="8dp"
-                            android:paddingStart="8dp"
-                            android:paddingRight="0dp"
-                            android:paddingEnd="0dp"
-                            tools:text="Jane Doe"
-                            style="@style/Base.TextAppearance.AppCompat.Title" />
-
-                    </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginBottom="10dp"
+                    android:orientation="horizontal">
 
                     <TextView
-                        android:id="@+id/userinfo_json"
-                        android:layout_width="match_parent"
+                        android:id="@+id/change_text_input_prepend"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        tools:text="{'blah': 'blah'}" />
+                        android:layout_gravity="center"
+                        android:text="@string/change_text_input_prepend" />
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/change_text_input"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:layout_gravity="center"
+                        android:inputType="numberDecimal"
+                        android:hint="@string/change_text_input_placeholder"/>
+
+                    <Button
+                        android:id="@+id/change_button"
+                        style="@style/Widget.AppCompat.Button.Small"
+                        android:text="@string/change_button"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"/>
                 </LinearLayout>
+
+                <TextView
+                    android:id="@+id/change_result_text_view"
+                    android:visibility="gone"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="@string/change_result_text_view"
+                    style="@style/Base.TextAppearance.AppCompat.Medium" />
+
+                <TextView
+                    android:id="@+id/no_access_token_returned"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/no_access_token_returned"
+                    android:visibility="gone"
+                    style="@style/Base.TextAppearance.AppCompat.Body1" />
             </LinearLayout>
         </LinearLayout>
     </ScrollView>

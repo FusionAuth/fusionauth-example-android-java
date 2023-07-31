@@ -18,10 +18,11 @@ import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
-import android.widget.ImageView;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.MainThread;
@@ -42,26 +43,27 @@ import net.openid.appauth.EndSessionRequest;
 import net.openid.appauth.IdToken;
 import net.openid.appauth.TokenRequest;
 import net.openid.appauth.TokenResponse;
-import okio.Okio;
-import org.joda.time.format.DateTimeFormat;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.lang.ref.WeakReference;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.HttpURLConnection;
 import java.nio.charset.Charset;
-import java.util.Objects;
+import java.text.NumberFormat;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
+import okio.Okio;
 
 
 /**
  * Displays the authorized state of the user. This activity is provided with the outcome of the
  * authorization flow, which it uses to negotiate the final authorized state,
  * by performing an authorization code exchange if necessary. After this, the activity provides
- * additional post-authorization operations if available, such as fetching user info and refreshing
- * access tokens.
+ * additional post-authorization operations if available, such as fetching user info.
  */
 public class TokenActivity extends AppCompatActivity {
     private static final String TAG = "TokenActivity";
@@ -191,81 +193,52 @@ public class TokenActivity extends AppCompatActivity {
 
         AuthState state = mStateManager.getCurrent();
 
-        TextView accessTokenInfoView = (TextView) findViewById(R.id.access_token_info);
+        TextView noAccessTokenReturnedView = (TextView) findViewById(R.id.no_access_token_returned);
         if (state.getAccessToken() == null) {
-            accessTokenInfoView.setText(R.string.no_access_token_returned);
+            noAccessTokenReturnedView.setVisibility(View.VISIBLE);
         } else {
-            accessTokenInfoView.setVisibility(View.GONE);
+            // Logging out if token is expired
+            Long expiresAt = state.getAccessTokenExpirationTime();
+            if ((expiresAt != null) && (expiresAt < System.currentTimeMillis())) {
+                signOut();
+                return;
+            }
         }
 
-        IdToken idToken = state.getParsedIdToken();
-
-        Button refreshTokenButton = (Button) findViewById(R.id.refresh_token);
-        refreshTokenButton.setVisibility(state.getRefreshToken() != null
-                ? View.VISIBLE
-                : View.GONE);
-        refreshTokenButton.setOnClickListener((View view) -> refreshAccessToken());
-
-        Button viewProfileButton = (Button) findViewById(R.id.view_profile);
-
-        AuthorizationServiceDiscovery discoveryDoc =
-                state.getAuthorizationServiceConfiguration().discoveryDoc;
-        if ((discoveryDoc == null || discoveryDoc.getUserinfoEndpoint() == null)
-                && mConfiguration.getUserInfoEndpointUri() == null) {
-            viewProfileButton.setVisibility(View.GONE);
-        } else {
-            viewProfileButton.setVisibility(View.VISIBLE);
-            viewProfileButton.setOnClickListener((View view) -> fetchUserInfo());
-        }
-
+        EditText changeTextInput = findViewById(R.id.change_text_input);
+        changeTextInput.addTextChangedListener(new MoneyChangedHandler(changeTextInput));
         findViewById(R.id.sign_out).setOnClickListener((View view) -> endSession());
+        findViewById(R.id.change_button).setOnClickListener((View view) -> makeChange());
 
-        View userInfoCard = findViewById(R.id.userinfo_card);
-        JSONObject userInfo = mUserInfoJson.get();
         String name = "";
-        if (userInfo == null) {
-            userInfoCard.setVisibility(View.INVISIBLE);
-        } else {
+        String email = "";
+
+        // Retrieving name and email from the /me endpoint response
+        JSONObject userInfo = mUserInfoJson.get();
+        if (userInfo != null) {
             try {
-                if (userInfo.has("name")) {
-                    name = userInfo.getString("name");
-                } else if (userInfo.has("given_name")) {
+                if (userInfo.has("given_name")) {
                     name = userInfo.getString("given_name");
-                    if (userInfo.has("family_name")) {
-                        name += " " + userInfo.getString("family_name");
-                    }
-                } else if (userInfo.has("email")) {
-                    name = userInfo.getString("email");
                 }
-                ((TextView) findViewById(R.id.userinfo_name)).setText(name);
-
-                if (userInfo.has("picture")) {
-                    GlideApp.with(TokenActivity.this)
-                            .load(Uri.parse(userInfo.getString("picture")))
-                            .fitCenter()
-                            .into((ImageView) findViewById(R.id.userinfo_profile));
+                if (userInfo.has("email")) {
+                    email = userInfo.getString("email");
                 }
-
-                ((TextView) findViewById(R.id.userinfo_json)).setText(mUserInfoJson.toString());
-                userInfoCard.setVisibility(View.VISIBLE);
             } catch (JSONException ex) {
                 Log.e(TAG, "Failed to read userinfo JSON", ex);
             }
         }
 
-        if ((name.isEmpty()) && (idToken != null)) {
-            Object claim = idToken.additionalClaims.get("name");
-            if (claim != null) {
-                name = claim.toString();
-            }
-            if (name.isEmpty()) {
-                claim = idToken.additionalClaims.get("email");
+        // Fallback for name and email
+        if ((name.isEmpty()) || (email.isEmpty())) {
+            IdToken idToken = state.getParsedIdToken();
+            if (idToken != null) {
+                Object claim = idToken.additionalClaims.get("email");
                 if (claim != null) {
-                    name = claim.toString();
+                    email = claim.toString();
+                    if (name.isEmpty()) {
+                        name = email;
+                    }
                 }
-            }
-            if (name.isEmpty()) {
-                name = idToken.subject;
             }
         }
 
@@ -274,14 +247,8 @@ public class TokenActivity extends AppCompatActivity {
             String welcomeTemplate = getResources().getString(R.string.auth_granted_name);
             welcomeView.setText(String.format(welcomeTemplate, name));
         }
-    }
 
-    @MainThread
-    private void refreshAccessToken() {
-        displayLoading("Refreshing access token");
-        performTokenRequest(
-                mStateManager.getCurrent().createTokenRefreshRequest(),
-                this::handleAccessTokenResponse);
+        ((TextView) findViewById(R.id.auth_granted_email)).setText(email);
     }
 
     @MainThread
@@ -313,25 +280,12 @@ public class TokenActivity extends AppCompatActivity {
     }
 
     @WorkerThread
-    private void handleAccessTokenResponse(
-            @Nullable TokenResponse tokenResponse,
-            @Nullable AuthorizationException authException) {
-        mStateManager.updateAfterTokenResponse(tokenResponse, authException);
-        runOnUiThread(this::displayAuthorized);
-    }
-
-    @WorkerThread
     private void handleCodeExchangeResponse(
             @Nullable TokenResponse tokenResponse,
             @Nullable AuthorizationException authException) {
 
-        if (tokenResponse != null) {
-            Log.e("TokenActivity", String.valueOf(tokenResponse.idToken));
-            Log.e("TokenActivity", String.valueOf(tokenResponse.accessToken));
-            Log.e("TokenActivity", tokenResponse.jsonSerializeString());
-        }
         mStateManager.updateAfterTokenResponse(tokenResponse, authException);
-        if (!mStateManager.getCurrent().isAuthorized()) {
+        if ((tokenResponse == null) || (!mStateManager.getCurrent().isAuthorized())) {
             String details = "";
             if (authException != null) {
                 if (authException.error != null) {
@@ -349,49 +303,24 @@ public class TokenActivity extends AppCompatActivity {
             // WrongThread inference is incorrect for lambdas
             //noinspection WrongThread
             runOnUiThread(() -> displayNotAuthorized(message));
-        } else {
-            runOnUiThread(this::displayAuthorized);
-        }
-    }
-
-    /**
-     * Demonstrates the use of {@link AuthState#performActionWithFreshTokens} to retrieve
-     * user info from the IDP's user info endpoint. This callback will negotiate a new access
-     * token / id token for use in a follow-up action, or provide an error if this fails.
-     */
-    @MainThread
-    private void fetchUserInfo() {
-        displayLoading("Fetching user info");
-        mStateManager.getCurrent().performActionWithFreshTokens(mAuthService, this::fetchUserInfo);
-    }
-
-    @MainThread
-    private void fetchUserInfo(String accessToken, String idToken, AuthorizationException ex) {
-        if (ex != null) {
-            Log.e(TAG, "Token refresh failed when fetching user info");
-            mUserInfoJson.set(null);
-            runOnUiThread(this::displayAuthorized);
             return;
         }
 
         AuthorizationServiceDiscovery discovery =
-                mStateManager.getCurrent()
-                        .getAuthorizationServiceConfiguration()
-                        .discoveryDoc;
+            mStateManager.getCurrent()
+                .getAuthorizationServiceConfiguration()
+                .discoveryDoc;
 
-        Uri userInfoEndpoint =
-                    mConfiguration.getUserInfoEndpointUri() != null
-                        ? Uri.parse(mConfiguration.getUserInfoEndpointUri().toString())
-                        : Uri.parse(discovery.getUserinfoEndpoint().toString());
+        Uri userInfoEndpoint = Uri.parse(discovery.getUserinfoEndpoint().toString());
 
         mExecutor.submit(() -> {
             try {
                 HttpURLConnection conn = mConfiguration.getConnectionBuilder().openConnection(
-                        userInfoEndpoint);
-                conn.setRequestProperty("Authorization", "Bearer " + accessToken);
+                    userInfoEndpoint);
+                conn.setRequestProperty("Authorization", "Bearer " + tokenResponse.accessToken);
                 conn.setInstanceFollowRedirects(false);
                 String response = Okio.buffer(Okio.source(conn.getInputStream()))
-                        .readString(Charset.forName("UTF-8"));
+                    .readString(Charset.forName("UTF-8"));
                 mUserInfoJson.set(new JSONObject(response));
             } catch (IOException ioEx) {
                 Log.e(TAG, "Network error when querying userinfo endpoint", ioEx);
@@ -450,6 +379,37 @@ public class TokenActivity extends AppCompatActivity {
     }
 
     @MainThread
+    private void makeChange() {
+        String value = ((EditText) findViewById(R.id.change_text_input))
+            .getText()
+            .toString()
+            .trim();
+
+        if (value.length() == 0) {
+            return;
+        }
+
+        float floatValue = Float.parseFloat(value);
+        if (floatValue < 0) {
+            return;
+        }
+        float cents = floatValue * 100;
+        int nickels = (int) Math.floor(cents / 5);
+        int pennies = (int) (cents % 5);
+        TextView textView = findViewById(R.id.change_result_text_view);
+        String changeTemplate = getResources().getString(R.string.change_result_text_view);
+        textView.setText(
+            String.format(
+                changeTemplate,
+                NumberFormat.getCurrencyInstance().format(floatValue),
+                nickels,
+                pennies
+            )
+        );
+        textView.setVisibility(View.VISIBLE);
+    }
+
+    @MainThread
     private void signOut() {
         // discard the authorization and token state, but retain the configuration and
         // dynamic client registration (if applicable), to save from retrieving them again.
@@ -465,5 +425,48 @@ public class TokenActivity extends AppCompatActivity {
         mainIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         startActivity(mainIntent);
         finish();
+    }
+
+    /**
+     * @see <a href="https://stackoverflow.com/a/24621325">StackOverflow answer</a>
+     */
+    private static final class MoneyChangedHandler implements TextWatcher {
+        private final WeakReference<EditText> editTextWeakReference;
+
+        public MoneyChangedHandler(EditText editText) {
+            editTextWeakReference = new WeakReference<EditText>(editText);
+        }
+
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+        }
+
+        @Override
+        public void onTextChanged(CharSequence s, int start, int before, int count) {
+        }
+
+        @Override
+        public void afterTextChanged(Editable editable) {
+            EditText editText = editTextWeakReference.get();
+            if (editText == null) {
+                return;
+            }
+            String s = editable.toString();
+            if (s.isEmpty()) {
+                return;
+            }
+
+            editText.removeTextChangedListener(this);
+
+            String cleanString = s.replaceAll("[,.]", "");
+            String parsed = new BigDecimal(cleanString)
+                .setScale(2, RoundingMode.FLOOR)
+                .divide(new BigDecimal(100), RoundingMode.FLOOR)
+                .toString();
+            editText.setText(parsed);
+            editText.setSelection(parsed.length());
+
+            editText.addTextChangedListener(this);
+        }
     }
 }
