@@ -123,8 +123,9 @@ public class TokenActivity extends AppCompatActivity {
             mExecutor = Executors.newSingleThreadExecutor();
         }
 
-        if (mStateManager.getCurrent().isAuthorized()) {
-            displayAuthorized();
+        AuthState authState = mStateManager.getCurrent();
+        if (authState.isAuthorized()) {
+            fetchUserInfoAndDisplayAuthorized(authState.getAccessToken());
             return;
         }
 
@@ -298,7 +299,7 @@ public class TokenActivity extends AppCompatActivity {
                 }
             }
             final String message = "Authorization Code exchange failed"
-                    + ((details.length() > 0) ? ": " + details : "");
+                + ((details.length() > 0) ? ": " + details : "");
 
             // WrongThread inference is incorrect for lambdas
             //noinspection WrongThread
@@ -306,6 +307,10 @@ public class TokenActivity extends AppCompatActivity {
             return;
         }
 
+        fetchUserInfoAndDisplayAuthorized(tokenResponse.accessToken);
+    }
+
+    private void fetchUserInfoAndDisplayAuthorized(String accessToken) {
         AuthorizationServiceDiscovery discovery =
             mStateManager.getCurrent()
                 .getAuthorizationServiceConfiguration()
@@ -317,7 +322,7 @@ public class TokenActivity extends AppCompatActivity {
             try {
                 HttpURLConnection conn = mConfiguration.getConnectionBuilder().openConnection(
                     userInfoEndpoint);
-                conn.setRequestProperty("Authorization", "Bearer " + tokenResponse.accessToken);
+                conn.setRequestProperty("Authorization", "Bearer " + accessToken);
                 conn.setInstanceFollowRedirects(false);
                 String response = Okio.buffer(Okio.source(conn.getInputStream()))
                     .readString(Charset.forName("UTF-8"));
