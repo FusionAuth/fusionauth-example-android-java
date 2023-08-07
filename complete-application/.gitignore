@@ -1,8 +1,6 @@
 .gradle
-/local.properties
+local.properties
 build
 app/build
 library/build
-.idea/*
-*.iml
 appauth.keystore

@@ -1,8 +1,8 @@
 {
-  "client_id": "83f4b2a9-5c6c-4a5a-ad2a-907a3eff2623",
+  "client_id": "e9fdb985-9173-4e01-9d73-ac2d60d1dc8e",
   "redirect_uri": "io.fusionauth.app:/oauth2redirect",
   "end_session_redirect_uri": "io.fusionauth.app:/oauth2redirect",
   "authorization_scope": "openid offline_access",
-  "discovery_uri": "https://6d1e-2804-431-c7c9-739-4703-98a7-4b81-5ba6.ngrok-free.app/.well-known/openid-configuration/d7d09513-a3f5-401c-9685-34ab6c552453",
+  "discovery_uri": "https://[YOUR-NGROK-MAIN-DOMAIN]/.well-known/openid-configuration/d7d09513-a3f5-401c-9685-34ab6c552453",
   "https_required": true
 }
