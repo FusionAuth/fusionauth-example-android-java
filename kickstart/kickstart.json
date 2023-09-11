@@ -27,7 +27,7 @@
             "body": {
               "key": {
                 "algorithm": "RS256",
-                "name": "For exampleapp",
+                "name": "For Example Android App",
                 "length": 2048
               }
             }
@@ -55,7 +55,9 @@
               "application": {
                 "name": "Example Android App",
                 "oauthConfiguration" : {
-                    "authorizedRedirectURLs": ["io.fusionauth.app:/oauth2redirect"],
+                    "authorizedRedirectURLs": ["io.fusionauth.app://oauth2redirect"],
+                    "clientAuthenticationPolicy": "NotRequiredWhenUsingPKCE",
+                    "proofKeyForCodeExchangePolicy": "Required",
                     "clientSecret": "#{clientSecret}",
                     "enabledGrants": ["authorization_code", "refresh_token"]
                 },
