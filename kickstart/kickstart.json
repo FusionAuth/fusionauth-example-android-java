@@ -55,7 +55,7 @@
               "application": {
                 "name": "Example Android App",
                 "oauthConfiguration" : {
-                    "authorizedRedirectURLs": ["io.fusionauth.app://oauth2redirect"],
+                    "authorizedRedirectURLs": ["io.fusionauth.app:/oauth2redirect"],
                     "clientAuthenticationPolicy": "NotRequiredWhenUsingPKCE",
                     "proofKeyForCodeExchangePolicy": "Required",
                     "clientSecret": "#{clientSecret}",
