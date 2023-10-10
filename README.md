@@ -36,10 +36,14 @@ You can log into the [FusionAuth admin UI](http://localhost:9011/admin) and look
 ### Running the Android App
 
 - Open this project's `complete-application` folder in [Android Studio](https://developer.android.com/studio).
+- Expose FusionAuth to the internet, via a tool like ngrok.
+- Update the tenant `Issuer` value to be the public FusionAuth URL.
+- Create new JWT signing keys.
+- Update the `discovery_uri` field in `complete-application/app/res/raw/auth_config.json` with the value of the public FusionAuth hostname.
 - Either [connect a hardware device](https://developer.android.com/studio/run/device) or create an Android Virtual Device to run the [Android Emulator](https://developer.android.com/studio/run/emulator).
 - [Build and run the app](https://developer.android.com/studio/run/) following Android Studio guidelines.
 
 ### Further Information
 
-Visit https://fusionauth.io/docs/quickstarts/quickstart-android-java-native for a step-by-step guide on how to build this Android app from scratch.
+Visit https://fusionauth.io/docs/quickstarts/quickstart-android-java-native for a step-by-step guide on how to build this Android app from scratch, including more details about the tenant and application settings.
 
